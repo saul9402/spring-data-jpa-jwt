@@ -29,12 +29,19 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Este filtro sólo se ejecutará cuando se apunte a la URL definida en el
+ * contructor y sirve, básicamente, para crear el jwt de acceso a la aplicación.
+ * 
+ * @author Saul Avila
+ *
+ */
 @Slf4j
-public class JWTAthenticationFilter extends UsernamePasswordAuthenticationFilter {
+public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilter {
 
 	private AuthenticationManager authenticationManager;
 
-	public JWTAthenticationFilter(AuthenticationManager authenticationManager) {
+	public JWTAuthenticationFilter(AuthenticationManager authenticationManager) {
 		/*
 		 * Aqui se agrega la url que servirá para autenticación, es con la que se deberá
 		 * "iniciar sesión" y la que devolverá el jwt
