@@ -10,7 +10,6 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import com.bolsadeideas.springboot.datajpa.app.auth.filter.JWTAthenticationFilter;
-import com.bolsadeideas.springboot.datajpa.app.auth.handler.LoginSuccessHandler;
 import com.bolsadeideas.springboot.datajpa.app.models.service.JpaUserDetailsService;
 
 //esta anotacion es importante para habilitar el uso de anotaciones en los metodos y sustituye a la configuracion que se ve comentada aqui
@@ -18,8 +17,9 @@ import com.bolsadeideas.springboot.datajpa.app.models.service.JpaUserDetailsServ
 @Configuration
 public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
 
-	@Autowired
-	private LoginSuccessHandler successHandler;
+	/*
+	 * @Autowired private LoginSuccessHandler successHandler;
+	 */	
 
 	@Autowired
 	private BCryptPasswordEncoder passwordEncoder;
@@ -30,9 +30,7 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
 	@Override
 	protected void configure(HttpSecurity http) throws Exception {
 
-		http.authorizeRequests()
-				.antMatchers("/", "/css/**", "/js/**", "/images/**", "/listar**", "/locale")
-				.permitAll()
+		http.authorizeRequests().antMatchers("/", "/css/**", "/js/**", "/images/**", "/listar**", "/locale").permitAll()
 				/*
 				 * Lo que está aqui se sustituye por las anotaciones @Secured y @PreAuthorize
 				 * .antMatchers("/uploads/** ").hasAnyRole("USER")
@@ -41,12 +39,22 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
 				 * hasAnyRole("ADMIN") .antMatchers("/factura/**").hasAnyRole("ADMIN")
 				 */
 				.anyRequest().authenticated()
-				//.and().formLogin().successHandler(successHandler).loginPage("/login")
-				//.permitAll().and().logout().permitAll().and().exceptionHandling().accessDeniedPage("/error_403")
-				//se deshabilita el uso de sesiones para poder usar rest
+				// .and().formLogin().successHandler(successHandler).loginPage("/login")
+				// .permitAll().and().logout().permitAll().and().exceptionHandling().accessDeniedPage("/error_403")
+				// se deshabilita el uso de sesiones para poder usar rest
 				.and()
-				.addFilter(new JWTAthenticationFilter(authenticationManager()))
-				.csrf().disable().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+				/*
+				 * Aqui se agrega el filtro de jwt que tomará cada petición que se realice y
+				 * verificará que las credenciales sean correctas. El authenticationManager() se
+				 * hereda de WebSecurityConfigurerAdapter la clase de la que extiende. También
+				 * se deshabilita el csrf ya que no será utilizado en este caso porque será
+				 * sustituido por jwt. Y por ultimo el manejo de sesion se setea a stateless ya
+				 * que no se usara la sesión para persistir al usuario, no es necesario hacerlo
+				 * puesto que cada cliente tendrá su token y de querer realizar alguna
+				 * transaccion deberá "presentarlo".
+				 */
+				.addFilter(new JWTAthenticationFilter(authenticationManager())).csrf().disable().sessionManagement()
+				.sessionCreationPolicy(SessionCreationPolicy.STATELESS);
 	}
 
 	@Autowired
