@@ -1,8 +1,6 @@
 package com.bolsadeideas.springboot.datajpa.app.auth.filter;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -15,18 +13,15 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
+import com.bolsadeideas.springboot.datajpa.app.auth.service.JWTService;
+import com.bolsadeideas.springboot.datajpa.app.auth.service.JWTServiceImpl;
 import com.bolsadeideas.springboot.datajpa.app.models.entity.Usuario;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -41,12 +36,19 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
 
 	private AuthenticationManager authenticationManager;
 
-	public JWTAuthenticationFilter(AuthenticationManager authenticationManager) {
+	/**
+	 * Se crea una propiedad que implementara el jwtService y esta se hará llegar
+	 * por contructor desde la configuracion de seguridad en spring
+	 */
+	private JWTService jwtService;
+
+	public JWTAuthenticationFilter(AuthenticationManager authenticationManager, JWTService jwtService) {
 		/*
 		 * Aqui se agrega la url que servirá para autenticación, es con la que se deberá
 		 * "iniciar sesión" y la que devolverá el jwt
 		 */
 		this.authenticationManager = authenticationManager;
+		this.jwtService = jwtService;
 		setRequiresAuthenticationRequestMatcher(new AntPathRequestMatcher("/api/login", "POST"));
 	}
 
@@ -102,34 +104,13 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
 	protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain,
 			Authentication authResult) throws IOException, ServletException {
 
-		String username = ((User) authResult.getPrincipal()).getUsername();
-
-		Collection<? extends GrantedAuthority> roles = authResult.getAuthorities();
-
-		Claims claims = Jwts.claims();
-		/*
-		 * Se agregan los roles como un json dentro de los claims del token
-		 */
-		claims.put("authorities", new ObjectMapper().writeValueAsString(roles));
-
-		/*
-		 * La contraseña debe ser asi de larga puesto que el algoritmo de cifrado asi lo
-		 * exige, de lo contrario no generá el token y es como si no te hubieras
-		 * logeado, T_T
-		 */
-		String token = Jwts.builder().setClaims(claims).setSubject(authResult.getName()).setIssuedAt(new Date())
-				.setExpiration(new Date(System.currentTimeMillis() + 3_600_000L * 4))
-				.signWith(Keys.hmacShaKeyFor(
-						"Alguna.Clave.Secreta.Para.Generar.Mi.JWT.Larguisima.Para.Que.Sea.Super.Super.Segura.No.Chingues.Que.Castre.Es.Este.Pedo.xD"
-								.getBytes()),
-						SignatureAlgorithm.HS512)
-				.compact();
+		String token = jwtService.create(authResult);
 
 		/*
 		 * Se debe poner la palabra Bearer antes del token que va en el encabezado... No
 		 * sé porque pero asi es...
 		 */
-		response.addHeader("Authorization", "Bearer ".concat(token));
+		response.addHeader(JWTServiceImpl.HEADER_STRING, JWTServiceImpl.TOKEN_PREFIX.concat(token));
 
 		/*
 		 * Se agrega un cuerpo para el response el cual contendrá el token, los detalles
@@ -138,7 +119,7 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
 		Map<String, Object> body = new HashMap<String, Object>();
 		body.put("token", token);
 		body.put("user", (User) authResult.getPrincipal());
-		body.put("mensaje", String.format("Hola %s has iniciado sesion con exito", username));
+		body.put("mensaje", String.format("Hola %s has iniciado sesion con exito", authResult.getName()));
 
 		/*
 		 * El json creado se "escribe" en el response para eso se usa el metodo write

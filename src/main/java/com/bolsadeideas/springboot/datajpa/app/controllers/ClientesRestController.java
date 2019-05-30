@@ -1,6 +1,7 @@
 package com.bolsadeideas.springboot.datajpa.app.controllers;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,6 +24,12 @@ public class ClientesRestController {
 	private IClienteService clienteServiceImpl;
 
 	@GetMapping(value = { "/listar", "", "/" })
+	/**
+	 * Se autoriza solo a los admin y funciona, :')
+	 * 
+	 * @return
+	 */
+	@Secured("ROLE_ADMIN")
 	public ClienteList listar() {
 		/**
 		 * Se debe poner asi ya que si es necesario usar xml se necesita un wrapper que

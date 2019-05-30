@@ -11,6 +11,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import com.bolsadeideas.springboot.datajpa.app.auth.filter.JWTAuthenticationFilter;
 import com.bolsadeideas.springboot.datajpa.app.auth.filter.JWTAuthorizationFilter;
+import com.bolsadeideas.springboot.datajpa.app.auth.service.JWTService;
 import com.bolsadeideas.springboot.datajpa.app.models.service.JpaUserDetailsService;
 
 //esta anotacion es importante para habilitar el uso de anotaciones en los metodos y sustituye a la configuracion que se ve comentada aqui
@@ -27,6 +28,9 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
 
 	@Autowired
 	private JpaUserDetailsService jpaUserDetailsService;
+	
+	@Autowired
+	private JWTService jwtService;
 
 	@Override
 	protected void configure(HttpSecurity http) throws Exception {
@@ -54,9 +58,9 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
 				 * puesto que cada cliente tendrá su token y de querer realizar alguna
 				 * transaccion deberá "presentarlo".
 				 */
-				.addFilter(new JWTAuthenticationFilter(authenticationManager()))
+				.addFilter(new JWTAuthenticationFilter(authenticationManager(), jwtService))
 				// se agrega el segundo filtro que revisará cada una de las peticiones
-				.addFilter(new JWTAuthorizationFilter(authenticationManager())).csrf().disable().sessionManagement()
+				.addFilter(new JWTAuthorizationFilter(authenticationManager(), jwtService)).csrf().disable().sessionManagement()
 				.sessionCreationPolicy(SessionCreationPolicy.STATELESS);
 	}
 
